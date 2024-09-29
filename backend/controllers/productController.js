@@ -16,10 +16,24 @@ cloudinary.config({
 const createProduct = asyncHandler(async (req, res) => {
   const { name, sku, category, quantity, price, description } = req.body;
 
-  //   Validation
+  // Validation
   if (!name || !category || !quantity || !price || !description) {
     res.status(400);
     throw new Error("Please fill in all fields");
+  }
+
+  // Check if a product with the same name already exists
+  const existingProduct = await Product.findOne({ name });
+  if (existingProduct) {
+    // Calculate the value (price * quantity) of the existing product and the new product
+    const existingValue = existingProduct.price * existingProduct.quantity;
+    const newValue = price * quantity;
+
+    // If both name and value are the same, do not create the product
+    if (existingValue === newValue) {
+      res.status(400);
+      throw new Error("A product with the same name and value already exists!");
+    }
   }
 
   // Handle Image upload
@@ -29,7 +43,7 @@ const createProduct = asyncHandler(async (req, res) => {
     let uploadedFile;
     try {
       uploadedFile = await cloudinary.uploader.upload_stream(req.file.path, {
-        folder: "Invetory App",
+        folder: "Inventory App",
         resource_type: "image",
       });
     } catch (error) {
@@ -59,6 +73,8 @@ const createProduct = asyncHandler(async (req, res) => {
 
   res.status(201).json(product);
 });
+
+
 
 // Get all Products
 const getProducts = asyncHandler(async (req, res) => {
